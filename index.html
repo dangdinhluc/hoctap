@@ -2,34 +2,26 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trang học của Đặng Lực</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 2rem;
-      max-width: 800px;
-      margin: auto;
-      background: #f5f5f5;
+    /* Xóa bỏ mọi khoảng trắng của trang */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden; /* Ẩn thanh cuộn của trang cha */
     }
-    h1 {
-      color: #333;
-    }
+
+    /* Cho iframe chiếm 100% không gian */
     iframe {
-      width: 100%;
-      height: 600px;
-      border: none;
-      background: white;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 100vw;  /* 100% chiều rộng của cửa sổ xem */
+      height: 100vh; /* 100% chiều cao của cửa sổ xem */
+      border: none;  /* Xóa đường viền của iframe */
     }
   </style>
 </head>
 <body>
-  <h1>📚 Nội dung học dành riêng cho bạn</h1>
-  <p>Nội dung bên dưới sẽ được tải từ Google Apps Script sau khi bạn đăng nhập Google và được cấp quyền.</p>
-
-  <!-- ✅ Đã thay bằng link Apps Script thực tế -->
-  <iframe src="https://script.google.com/macros/s/AKfycbxeKZ0y81es9zo25OQQQHhedPVrwIvN57T68uUmGhxZ-OJ0EUGjhBoFOnQkMizQ38fedA/exec" allow="clipboard-read; clipboard-write"></iframe>
-
+  <iframe src="https://script.google.com/macros/s/AKfycbyDbiRYSUMlCtA_wV-lltRBj63xTF0h-UIlrqrgeKUubQiB9LI7yA2Mxm_Nk5eYeQzQAA/exec" allow="clipboard-read; clipboard-write"></iframe>
 </body>
 </html>
