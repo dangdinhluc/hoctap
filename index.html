@@ -1,27 +1,506 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trang học của Đặng Lực</title>
-  <style>
-    /* Xóa bỏ mọi khoảng trắng của trang */
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden; /* Ẩn thanh cuộn của trang cha */
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thư Nhập Học Đa Trường - Mẫu Tự Động</title>
+    <!-- Tải font Caveat (chữ ký thanh mảnh, tự nhiên) -->
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- THƯ VIỆN TẠO PDF: jspdf và html2canvas (jspdf cần html2canvas) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    /* Cho iframe chiếm 100% không gian */
-    iframe {
-      width: 100vw;  /* 100% chiều rộng của cửa sổ xem */
-      height: 100vh; /* 100% chiều cao của cửa sổ xem */
-      border: none;  /* Xóa đường viền của iframe */
-    }
-  </style>
+    <style>
+        /* Tùy chỉnh Font và một số kiểu cố định */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* Màu nền nhẹ nhàng */
+        }
+        .letter-container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: #ffffff;
+            padding: 30px 40px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            position: relative; 
+            overflow: hidden; 
+        }
+
+        /* Vùng nội dung thư, có thể cần z-index để nổi trên watermark */
+        .letter-body {
+            position: relative;
+            z-index: 10;
+        }
+
+        /* CSS ĐIỀU CHỈNH CHO LOGO CHÌM ẨN (WATERMARK) */
+        .watermark-logo {
+            position: absolute;
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 80%; /* Kích thước logo chìm lớn */
+            height: auto;
+            opacity: 0.07; /* Độ mờ */
+            z-index: 1; 
+            pointer-events: none; 
+        }
+        
+        /* Cập nhật CSS cho Header để căn giữa logo mới */
+        .header {
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            margin-bottom: 30px; 
+        }
+
+        .logo-text {
+            display: flex; 
+            align-items: center; 
+        }
+
+        /* CSS TÙY CHỈNH CHO CHỮ KÝ (ĐÃ FIX LỖI XUẤT PDF) */
+        .signature-line {
+            line-height: 1.6;
+            margin-top: 50px;
+        }
+        .handwriting-signature {
+            font-family: 'Caveat', cursive; /* ĐÃ THAY ĐỔI: Font Caveat - thanh mảnh và tự nhiên hơn */
+            font-size: 3em; /* Giảm kích thước nhẹ để thanh mảnh hơn */
+            font-weight: 400; /* Đảm bảo không quá đậm */
+            color: #004d40; 
+            display: block;
+            /* FIX: Kéo chữ ký lên sát đường gạch ngang (margin-top: -30px) và loại bỏ margin-bottom */
+            margin-top: -30px; 
+            margin-bottom: 0;
+            padding-left: 10px; 
+        }
+        .printed-name {
+            font-family: 'Arial', sans-serif;
+            font-size: 1em;
+            font-weight: bold;
+            color: #333;
+            /* FIX: Đảm bảo có padding-top để tạo khoảng trống giữa chữ ký và gạch ngang */
+            padding-top: 10px; 
+            padding-left: 10px;
+            border-top: 1px solid #333; 
+            width: 200px; 
+            display: block;
+        }
+        
+        /* Tùy chỉnh cho mobile */
+        @media (max-width: 640px) {
+            .letter-container {
+                margin: 10px;
+                padding: 20px;
+                box-shadow: none;
+                border: none;
+            }
+            .handwriting-signature {
+                font-size: 2.5em; 
+            }
+            .watermark-logo {
+                width: 100%; 
+            }
+        }
+    </style>
 </head>
 <body>
-  <iframe src="https://script.google.com/macros/s/AKfycbzhB3I2-KGJtCYmyJlhgf7hTEWT_CeMVQyHDS5BgBkyiG-_xkt67McohclpM8zrD7YPmQ/exec" allow="clipboard-read; clipboard-write"></iframe>
+
+    <!-- Phần Nhập Liệu -->
+    <div class="max-w-xl mx-auto mt-8 p-6 bg-white rounded-xl shadow-lg border border-indigo-100">
+        <h3 class="text-xl font-bold text-indigo-700 mb-4">✍️ Nhập thông tin của bạn</h3>
+        
+        <!-- Ô chọn Trường Đại học MỚI -->
+        <label for="university-select" class="block text-sm font-medium text-gray-700">Chọn Trường Đại học:</label>
+        <select id="university-select" onchange="updateLetter()"
+               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm mb-3 appearance-none bg-white">
+            <option value="KAGAWA">Kagawa University (香川大学)</option>
+            <option value="GAKUSHUIN">Gakushuin University (学習院大学)</option>
+            <option value="HOSO">The Open University of Japan (放送大学)</option>
+        </select>
+
+        <!-- Ô nhập Tên và Địa chỉ -->
+        <label for="name" class="block text-sm font-medium text-gray-700">Tên đầy đủ:</label>
+        <input type="text" id="name" placeholder="Ví dụ: Đặng Đình Lực" value="Đặng Đình Lực"
+               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm mb-3">
+        
+        <label for="address" class="block text-sm font-medium text-gray-700">Địa chỉ (Phân tách bằng dấu phẩy):</label>
+        <input type="text" id="address" placeholder="Ví dụ: 3 Maple Avenue, Seattle, WA, 98101" value="3 Maple Avenue, Seattle, WA, 98101"
+               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm mb-4">
+        
+        <!-- Nút Random và Cập nhật -->
+        <div class="flex space-x-3 mb-4">
+             <button onclick="generateRandomInfo()"
+                    class="flex-1 justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out">
+                🎲 Tạo Thông Tin Ngẫu Nhiên
+            </button>
+            <button onclick="updateLetter()"
+                    class="flex-1 justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+                ✨ Cập nhật và Tạo Thư
+            </button>
+           
+        </div>
+        
+        <!-- Nút Tạo PDF -->
+        <button onclick="captureLetterToPDF()" id="pdf-button"
+            class="w-full justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition duration-150 ease-in-out">
+            📄 Tải File PDF
+        </button>
+    </div>
+
+    <!-- VÙNG HIỂN THỊ THÔNG BÁO -->
+    <div id="status-message" class="text-center mt-4 text-sm font-medium text-gray-600"></div>
+
+    <!-- Nội dung Thư Nhập Học -->
+    <div class="letter-container" id="letter-content">
+        
+        <!-- LOGO CHÌM ẨN (WATERMARK) -->
+        <img id="watermark-logo" src="https://sf-static.upanhlaylink.com/img/image_202510126db89391ec81bc0d23e82f0d94b776b1.jpg" 
+             alt="Hidden Logo/Seal Watermark" 
+             class="watermark-logo">
+        
+        <!-- BỌC TOÀN BỘ NỘI DUNG VÀO letter-body -->
+        <div class="letter-body">
+            
+            <!-- Header và Logo chính -->
+            <div class="header">
+                <div class="logo-text">
+                    <!-- Logo chính mới -->
+                    <img id="main-logo" src="https://i.ibb.co/k6swv9LQ/IMG-7047.webp" alt="University Logo" class="max-w-[250px]">
+                </div>
+            </div>
+
+            <!-- Ngày tháng (Sẽ được cập nhật tự động) -->
+            <p id="current-date" class="text-sm text-gray-500 text-right mb-4">July 18, 2025</p>
+
+            <!-- Địa chỉ Người Nhận -->
+            <div class="address-block text-base leading-relaxed mb-6">
+                <p id="recipient-name" class="font-semibold text-gray-800">Dang Luc</p>
+                <!-- Địa chỉ (Sẽ được cập nhật) -->
+                <p id="recipient-address">3 Maple Avenue<br>Seattle, WA, 98101</p>
+            </div>
+
+            <p class="text-base mb-6">Dear <span id="dear-name" class="font-bold text-indigo-600">Dang</span>:</p>
+
+            <!-- Nội dung chính -->
+            <div class="content text-base leading-relaxed text-gray-700">
+                <!-- Body Paragraph 1 -->
+                <p class="mb-4">Congratulations! On behalf of the <span id="uni-name-1">Kagawa University</span> community, I am pleased to announce your admission for Spring 2026! Your academic and personal achievements have earned you a place in the <span id="uni-program">CS101 program</span> at <span id="uni-name-2">Kagawa University</span>. We are excited to welcome you to a vibrant and supportive academic environment.</p>
+
+                <!-- Body Paragraph 2 (Thay đổi theo trường) -->
+                <p class="mb-4" id="uni-body-2">For over 125 years, individuals have entered Kagawa University, and have left prepared for success in the educational and professional world. Alma's historical placement rates of over 90% into careers or graduate school, as well as the commitment to making 4-year graduation possible, give Kagawa University graduates a clear advantage over many of their peers. We believe that the personalized education we strive to provide allows our students to thrive both on-campus and in their professional lives.</p>
+
+                <!-- Body Paragraph 3 -->
+                <p class="mb-4"><span id="dear-darrell" class="font-bold text-indigo-600">Darrell</span>, we are excited that you have been accepted to join the <span id="uni-name-3">Kagawa University</span> Class of <span id="uni-class-year-1">2025</span>. Please review the enclosed "Checklist" for the next steps needed to make <span id="uni-name-4">Kagawa University</span> part of your future. If you have already decided to join the next dynamic class of freshmen, submit your $100 commitment deposit in the envelope provided. Please contact our office at <span id="contact-phone">(352) 395-5000</span> or <span id="contact-email">admissions@kagawa-u.ac.jp</span> if we can help you in any way. </p>
+            </div>
+
+            <!-- Chữ ký -->
+            <div class="signature-line">
+                <p class="text-base mb-2">Sincerely,</p>
+                
+                <!-- Chữ ký viết tay (Font Caveat) -->
+                <p class="handwriting-signature" id="director-signature">Tanaka Yuki</p>
+                
+                <!-- Tên in đậm và chức danh -->
+                <p class="printed-name" id="director-printed-name">Tanaka Yuki</p>
+                <p class="text-base text-gray-700 pl-3" id="director-title">Director of Admissions</p>
+            </div>
+
+            <!-- Thông tin Văn phòng -->
+            <div class="admissions-office text-xs text-gray-500 text-center mt-8">
+                <hr class="my-4 border-gray-200">
+                <p class="font-bold mb-1">ADMISSIONS OFFICE</p>
+                <p><span id="office-uni-name">Kagawa University</span>, <span id="office-uni-email-display">admissions@kagawa-u.ac.jp</span></p>
+                <p>Phone <span id="office-phone">(352) 395-7300</span> | Fax <span id="office-fax">(352) 395-7300</span></p>
+                <p id="website">WWW.KAGAWA-U.AC.JP</p>
+            </div>
+        </div> 
+        <!-- Kết thúc letter-body -->
+    </div>
+
+    <!-- JavaScript để xử lý thay thế và tạo ảnh -->
+    <script>
+        
+        // Khởi tạo thư viện jsPDF
+        const { jsPDF } = window.jspdf;
+
+        // Dữ liệu ngẫu nhiên
+        const randomData = {
+            names: ["Alice Smith", "Bob Johnson", "Charlie Brown", "Diana Prince", "Ethan Hunt", "Fiona Glenanne", "George Miller"],
+            streets: ["Maple Avenue", "Oak Street", "Pine Lane", "Cedar Drive", "Elm Court", "Willow Road"],
+            cities: ["Seattle, WA, 98101", "New York, NY, 10001", "Miami, FL, 33101", "Austin, TX, 78701", "San Diego, CA, 92101"]
+        };
+
+        // Dữ liệu cho các trường đại học
+        const universityData = {
+            'KAGAWA': {
+                name_en: 'Kagawa University',
+                name_jp: '香川大学',
+                logo_main: 'https://i.ibb.co/k6swv9LQ/IMG-7047.webp',
+                logo_watermark: 'https://sf-static.upanhlaylink.com/img/image_202510126db89391ec81bc0d23e82f0d94b776b1.jpg',
+                program: 'CS101 program',
+                class_year: '2025',
+                contact_phone: '(352) 395-5000',
+                contact_admissions: 'admissions@kagawa-u.ac.jp',
+                office_phone: '(352) 395-7300',
+                office_fax: '(352) 395-7300',
+                website: 'WWW.KAGAWA-U.AC.JP',
+                director_name: 'Tanaka Yuki',
+                body_paragraph_2: "For over 125 years, individuals have entered Kagawa University, and have left prepared for success in the educational and professional world. Alma's historical placement rates of over 90% into careers or graduate school, as well as the commitment to making 4-year graduation possible, give Kagawa University graduates a clear advantage over many of their peers. We believe that the personalized education we strive to provide allows our students to thrive both on-campus and in their professional lives.",
+                
+            },
+            'GAKUSHUIN': {
+                name_en: 'Gakushuin University',
+                name_jp: '学習院大学',
+                logo_main: 'https://www.univ.gakushuin.ac.jp/img/common/logo-contents.svg',
+                logo_watermark: 'https://www.ucaro.net/static/admin/univ/304005A/logo/304005Alogo.png',
+                program: 'Faculty of Economics',
+                class_year: '2026',
+                contact_phone: '(03) 5992-1010',
+                contact_admissions: 'admissions@gakushuin.ac.jp',
+                office_phone: '(03) 5992-1111',
+                office_fax: '(03) 5992-1234',
+                website: 'WWW.GAKUSHUIN.AC.JP',
+                director_name: 'Yamada Taro',
+                body_paragraph_2: "Gakushuin University maintains a long-standing tradition of academic excellence, focusing on small class sizes and personalized guidance. Our graduates consistently achieve high placement rates in leading industries and postgraduate studies. We are committed to fostering critical thinking and leadership skills, ensuring our students are well-prepared for their future careers and contributions to society.",
+            },
+            'HOSO': {
+                name_en: 'The Open University of Japan',
+                name_jp: '放送大学',
+                logo_main: 'https://www.jmooc.jp/wp-content/uploads/logo_hososaigaku.png',
+                logo_watermark: 'https://www.city.awara.lg.jp/bosyuu/p011344_d/img/001.jpg',
+                program: 'Online Degree Program in Liberal Arts',
+                class_year: '2027',
+                contact_phone: '(043) 276-5111',
+                contact_admissions: 'admission@ouj.ac.jp',
+                office_phone: '(043) 276-5222',
+                office_fax: '(043) 276-5333',
+                website: 'WWW.OUJ.AC.JP',
+                director_name: 'Sato Kenji',
+                body_paragraph_2: "As Japan's premier distance learning institution, The Open University of Japan provides flexible and accessible educational opportunities through broadcasting and online platforms. We cater to diverse learners seeking lifelong education, professional development, and formal degree completion. Our innovative learning environment supports students worldwide in achieving their academic and career goals.",
+            }
+        };
+
+
+        /**
+         * Cập nhật tất cả thông tin liên quan đến trường đại học được chọn.
+         */
+        function updateUniversityInfo(uniKey) {
+            const data = universityData[uniKey];
+
+            // 1. Logos
+            document.getElementById('main-logo').src = data.logo_main;
+            document.getElementById('watermark-logo').src = data.logo_watermark;
+            document.getElementById('main-logo').alt = data.name_en + ' Logo';
+
+            // 2. Tên Trường (Trong nội dung)
+            document.getElementById('uni-name-1').textContent = data.name_en;
+            document.getElementById('uni-name-2').textContent = data.name_en;
+            document.getElementById('uni-name-3').textContent = data.name_en;
+            document.getElementById('uni-name-4').textContent = data.name_en;
+
+            // 3. Chương trình và Năm nhập học
+            document.getElementById('uni-program').textContent = data.program;
+            document.getElementById('uni-class-year-1').textContent = data.class_year;
+            
+            // 4. Nội dung thư (Đoạn 2)
+            document.getElementById('uni-body-2').textContent = data.body_paragraph_2;
+
+            // 5. Thông tin liên hệ trong Body
+            document.getElementById('contact-phone').textContent = data.contact_phone;
+            document.getElementById('contact-email').textContent = data.contact_admissions;
+
+            // 6. Chữ ký và Tên Giám đốc
+            document.getElementById('director-signature').textContent = data.director_name;
+            document.getElementById('director-printed-name').textContent = data.director_name;
+            
+            // 7. Thông tin Văn phòng cuối thư
+            document.getElementById('office-uni-name').textContent = data.name_en;
+            document.getElementById('office-uni-email-display').textContent = data.contact_admissions;
+            document.getElementById('office-phone').textContent = data.office_phone;
+            document.getElementById('office-fax').textContent = data.office_fax;
+            document.getElementById('website').textContent = data.website;
+
+            // Cập nhật tiêu đề thư
+            document.title = `Thư Nhập Học ${data.name_en} - Mẫu Tự Động`;
+        }
+
+        /**
+         * Hiển thị thông báo trạng thái
+         */
+        function showStatus(message, color = 'text-gray-600') {
+            const statusDiv = document.getElementById('status-message');
+            statusDiv.innerHTML = `<span class="${color}">${message}</span>`;
+            setTimeout(() => {
+                statusDiv.textContent = '';
+            }, 5000); 
+        }
+        
+        /**
+         * Tạo thông tin ngẫu nhiên và đưa vào ô nhập liệu
+         */
+        function generateRandomInfo() {
+            // Dữ liệu ngẫu nhiên (chỉ dùng tiếng Anh cho đồng nhất với mẫu thư)
+            const randomName = randomData.names[Math.floor(Math.random() * randomData.names.length)];
+            const randomStreet = Math.floor(Math.random() * 900) + 100 + " " + randomData.streets[Math.floor(Math.random() * randomData.streets.length)];
+            const randomCity = randomData.cities[Math.floor(Math.random() * randomData.cities.length)];
+            const randomAddress = `${randomStreet}, ${randomCity}`;
+            
+            // Random Date (Ngày hiện tại)
+            const today = new Date();
+            const randomDate = today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            // Cập nhật ô nhập liệu
+            document.getElementById('name').value = randomName;
+            document.getElementById('address').value = randomAddress;
+            
+            // Cập nhật thư
+            updateLetter(randomDate);
+            showStatus("Đã tạo thông tin ngẫu nhiên và cập nhật thư!", 'text-green-600');
+        }
+
+        /**
+         * Hàm này cập nhật nội dung thư dựa trên tên và địa chỉ người dùng nhập vào VÀ trường đại học được chọn.
+         * @param {string | null} customDate - Ngày tháng tùy chỉnh.
+         */
+        function updateLetter(customDate = null) {
+            const uniKey = document.getElementById('university-select').value;
+            const nameInput = document.getElementById('name').value.trim();
+            const addressInput = document.getElementById('address').value.trim();
+            
+            if (!nameInput) {
+                console.warn("Vui lòng nhập tên.");
+                return; 
+            }
+
+            // --- 1. Cập nhật thông tin Trường Đại học ---
+            updateUniversityInfo(uniKey);
+
+            // --- 2. Cập nhật thông tin Người nhận ---
+            
+            // Tách tên để lấy Tên Riêng (Ví dụ: 'Đặng Đình Lực' -> 'Lực')
+            const nameParts = nameInput.split(' ');
+            const firstName = nameParts[nameParts.length - 1];
+            const fullName = nameInput;
+
+            // Cập nhật ngày tháng
+            const dateElement = document.getElementById('current-date');
+            if (customDate) {
+                 dateElement.textContent = customDate;
+            } else {
+                // Nếu không có customDate (tức là người dùng nhấn Cập nhật thủ công), dùng ngày hiện tại
+                dateElement.textContent = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+            }
+
+            // Thay thế Tên người nhận (Dear Name)
+            document.getElementById('recipient-name').textContent = fullName;
+            document.getElementById('dear-name').textContent = firstName;
+            
+            // Thay thế tên trong nội dung thư (thay thế "Darrell" bằng Full Name)
+            document.getElementById('dear-darrell').textContent = fullName;
+
+            // --- TỐI ƯU HÓA PHẦN ĐỊA CHỈ (CHỈ DÙNG 2 DÒNG) ---
+            let formattedAddress = '-';
+            if (addressInput) {
+                // Tách địa chỉ tại dấu phẩy đầu tiên
+                const parts = addressInput.split(',');
+                
+                if (parts.length > 1) {
+                    const line1 = parts[0].trim(); // Địa chỉ đường phố (ví dụ: 3 Maple Avenue)
+                    
+                    // Nối các phần còn lại (Thành phố, Bang, Zip) thành dòng thứ hai
+                    const line2 = parts.slice(1).map(p => p.trim()).filter(p => p.length > 0).join(', ');
+                    
+                    formattedAddress = `${line1}<br>${line2}`;
+                    
+                } else {
+                    // Nếu không có dấu phẩy, giữ nguyên 1 dòng
+                    formattedAddress = addressInput.trim();
+                }
+            }
+            document.getElementById('recipient-address').innerHTML = formattedAddress;
+            // --- KẾT THÚC TỐI ƯU HÓA ĐỊA CHỈ ---
+            
+            // Chỉ hiện thị status khi người dùng nhấn nút thủ công
+            if (!customDate) {
+                showStatus("Đã cập nhật thư thủ công thành công!", 'text-indigo-600');
+            }
+        }
+
+        /**
+         * Hàm này sử dụng html2canvas và jspdf để chụp lại div #letter-content và tải xuống dưới dạng PDF.
+         */
+        async function captureLetterToPDF() {
+            const element = document.getElementById('letter-content');
+            const button = document.getElementById('pdf-button');
+            
+            // Thay đổi trạng thái nút
+            button.disabled = true;
+            button.textContent = 'Đang tạo PDF...';
+            showStatus("Đang xử lý PDF, vui lòng chờ...", 'text-yellow-600');
+
+            try {
+                // Tạo đối tượng jsPDF (A4, đơn vị mm)
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                // Tùy chọn để html2canvas chụp lại chính xác hơn
+                const options = {
+                    scale: 2, // Tăng độ phân giải
+                    useCORS: true, 
+                    logging: false, 
+                    windowWidth: 800, 
+                    scrollY: 0,
+                    backgroundColor: '#ffffff' 
+                };
+
+                // Chụp lại nội dung HTML
+                const canvas = await html2canvas(element, options);
+                const imgData = canvas.toDataURL('image/jpeg', 1.0); 
+
+                // Tính toán kích thước ảnh trên trang PDF
+                const imgWidth = 210; // Chiều rộng trang A4 (mm)
+                const pageHeight = 295; // Chiều cao trang A4 (mm)
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+
+                let position = 0; 
+
+                // Thêm ảnh vào PDF
+                doc.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                // Nếu nội dung dài hơn 1 trang, thêm trang mới
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    doc.addPage();
+                    doc.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                // Lấy tên người nhận và tên trường để đặt tên file
+                const recipientName = document.getElementById('recipient-name').textContent.replace(/\s/g, '_');
+                const uniName = document.getElementById('uni-name-1').textContent.replace(/\s/g, '_');
+                doc.save(`Thu_Nhap_Hoc_${uniName}_${recipientName}.pdf`);
+                
+                showStatus("✅ File PDF đã được tải xuống!", 'text-green-600');
+
+            } catch (error) {
+                console.error("Lỗi khi tạo PDF:", error);
+                showStatus("❌ Lỗi: Không thể tạo PDF. Vui lòng kiểm tra console.", 'text-red-600');
+            } finally {
+                // Khôi phục trạng thái nút
+                button.disabled = false;
+                button.textContent = '📄 Tải File PDF';
+            }
+        }
+
+        // Chạy hàm cập nhật khi trang web được tải để hiển thị dữ liệu mặc định và ngày hiện tại
+        window.onload = () => updateLetter(new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }));
+    </script>
+
 </body>
 </html>
